@@ -5,7 +5,7 @@ import { generateId } from '../utils/imageUtils';
 import { Generation, Edit, Asset } from '../types';
 
 export const useImageGeneration = () => {
-  const { addGeneration, setIsGenerating, setCanvasImage, setCurrentProject, currentProject } = useAppStore();
+  const { addGeneration, setIsGenerating, setCanvasImage, setCurrentProject, currentProject, addToast } = useAppStore();
 
   const generateMutation = useMutation({
     mutationFn: async (request: GenerationRequest) => {
@@ -72,12 +72,21 @@ export const useImageGeneration = () => {
           };
           setCurrentProject(newProject);
         }
+        
+        addToast({
+          type: 'success',
+          message: `Successfully generated ${images.length} image${images.length > 1 ? 's' : ''}!`
+        });
       }
       setIsGenerating(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Generation failed:', error);
       setIsGenerating(false);
+      addToast({
+        type: 'error',
+        message: error.message || 'Failed to generate image. Please try again.'
+      });
     }
   });
 
@@ -99,7 +108,9 @@ export const useImageEditing = () => {
     selectedGenerationId,
     currentProject,
     seed,
-    temperature 
+    temperature,
+    uploadedImages,
+    addToast
   } = useAppStore();
 
   const editMutation = useMutation({
@@ -257,12 +268,21 @@ export const useImageEditing = () => {
         setCanvasImage(outputAssets[0].url);
         selectEdit(edit.id);
         selectGeneration(null);
+        
+        addToast({
+          type: 'success',
+          message: `Successfully applied ${images.length} edit${images.length > 1 ? 's' : ''}!`
+        });
       }
       setIsGenerating(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Edit failed:', error);
       setIsGenerating(false);
+      addToast({
+        type: 'error',
+        message: error.message || 'Failed to edit image. Please try again.'
+      });
     }
   });
 

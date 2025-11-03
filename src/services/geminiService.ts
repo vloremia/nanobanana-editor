@@ -1,7 +1,24 @@
 import { GoogleGenAI } from '@google/genai';
 
-// Note: In production, this should be handled via a backend proxy
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'demo-key';
+// SECURITY WARNING: In production, API keys should NEVER be in client-side code.
+// This is a development-only setup. For production, implement a backend proxy
+// to handle all API calls securely.
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!API_KEY) {
+  throw new Error(
+    'VITE_GEMINI_API_KEY is not set. Please add it to your .env file.\n' +
+    'Get your API key from: https://aistudio.google.com/'
+  );
+}
+
+if (API_KEY === 'demo-key') {
+  console.warn(
+    '⚠️  WARNING: Using demo API key. This will not work for production.\n' +
+    'Please set a valid VITE_GEMINI_API_KEY in your .env file.'
+  );
+}
+
 const genAI = new GoogleGenAI({ apiKey: API_KEY });
 
 export interface GenerationRequest {
@@ -55,10 +72,32 @@ export class GeminiService {
         }
       }
 
+      if (images.length === 0) {
+        throw new Error('No images were generated. The model may have blocked the request due to safety filters.');
+      }
+
       return images;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating image:', error);
-      throw new Error('Failed to generate image. Please try again.');
+      
+      // Provide more specific error messages
+      if (error.message?.includes('API key')) {
+        throw new Error('Invalid API key. Please check your VITE_GEMINI_API_KEY in .env file.');
+      }
+      
+      if (error.message?.includes('quota')) {
+        throw new Error('API quota exceeded. Please check your Google AI Studio quota limits.');
+      }
+      
+      if (error.message?.includes('safety')) {
+        throw new Error('Content blocked by safety filters. Please try a different prompt.');
+      }
+      
+      if (error.message?.includes('RESOURCE_EXHAUSTED')) {
+        throw new Error('Rate limit exceeded. Please wait a moment before trying again.');
+      }
+      
+      throw new Error(error.message || 'Failed to generate image. Please check your internet connection and try again.');
     }
   }
 
@@ -108,10 +147,32 @@ export class GeminiService {
         }
       }
 
+      if (images.length === 0) {
+        throw new Error('No edited images were generated. The model may have blocked the request.');
+      }
+
       return images;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error editing image:', error);
-      throw new Error('Failed to edit image. Please try again.');
+      
+      // Provide more specific error messages
+      if (error.message?.includes('API key')) {
+        throw new Error('Invalid API key. Please check your VITE_GEMINI_API_KEY in .env file.');
+      }
+      
+      if (error.message?.includes('quota')) {
+        throw new Error('API quota exceeded. Please check your Google AI Studio quota limits.');
+      }
+      
+      if (error.message?.includes('safety')) {
+        throw new Error('Edit blocked by safety filters. Please try different instructions or image.');
+      }
+      
+      if (error.message?.includes('RESOURCE_EXHAUSTED')) {
+        throw new Error('Rate limit exceeded. Please wait a moment before trying again.');
+      }
+      
+      throw new Error(error.message || 'Failed to edit image. Please check your internet connection and try again.');
     }
   }
 

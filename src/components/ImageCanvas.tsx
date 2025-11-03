@@ -55,6 +55,12 @@ export const ImageCanvas: React.FC = () => {
         }
       };
       img.src = canvasImage;
+      
+      // Cleanup function to prevent memory leaks
+      return () => {
+        img.onload = null;
+        img.src = '';
+      };
     } else {
       setImage(null);
     }
@@ -82,7 +88,6 @@ export const ImageCanvas: React.FC = () => {
     
     setIsDrawing(true);
     const stage = e.target.getStage();
-    const pos = stage.getPointerPosition();
     
     // Use Konva's getRelativePointerPosition for accurate coordinates
     const relativePos = stage.getRelativePointerPosition();
@@ -105,7 +110,6 @@ export const ImageCanvas: React.FC = () => {
     if (!isDrawing || selectedTool !== 'mask' || !image) return;
     
     const stage = e.target.getStage();
-    const pos = stage.getPointerPosition();
     
     // Use Konva's getRelativePointerPosition for accurate coordinates
     const relativePos = stage.getRelativePointerPosition();
@@ -138,6 +142,22 @@ export const ImageCanvas: React.FC = () => {
       brushSize,
     });
     setCurrentStroke([]);
+  };
+
+  // Touch event handlers for mobile support
+  const handleTouchStart = (e: any) => {
+    e.evt.preventDefault(); // Prevent scrolling while drawing
+    handleMouseDown(e);
+  };
+
+  const handleTouchMove = (e: any) => {
+    e.evt.preventDefault(); // Prevent scrolling while drawing
+    handleMouseMove(e);
+  };
+
+  const handleTouchEnd = (e: any) => {
+    e.evt.preventDefault();
+    handleMouseUp();
   };
 
   const handleZoom = (delta: number) => {
@@ -289,8 +309,12 @@ export const ImageCanvas: React.FC = () => {
           onMouseDown={handleMouseDown}
           onMousemove={handleMouseMove}
           onMouseup={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           style={{ 
-            cursor: selectedTool === 'mask' ? 'crosshair' : 'default' 
+            cursor: selectedTool === 'mask' ? 'crosshair' : 'default',
+            touchAction: selectedTool === 'mask' ? 'none' : 'auto' // Prevent default touch actions when drawing
           }}
         >
           <Layer>

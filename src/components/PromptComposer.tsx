@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useImageGeneration, useImageEditing } from '../hooks/useImageGeneration';
 import { Upload, Wand2, Edit3, MousePointer, HelpCircle, Menu, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
 import { blobToBase64 } from '../utils/imageUtils';
+import { generateRateLimiter, editRateLimiter } from '../utils/rateLimiter';
 import { PromptHints } from './PromptHints';
 import { cn } from '../utils/cn';
 
@@ -32,6 +33,7 @@ export const PromptComposer: React.FC = () => {
     showPromptPanel,
     setShowPromptPanel,
     clearBrushStrokes,
+    addToast,
   } = useAppStore();
 
   const { generate } = useImageGeneration();
@@ -43,6 +45,18 @@ export const PromptComposer: React.FC = () => {
 
   const handleGenerate = () => {
     if (!currentPrompt.trim()) return;
+    
+    // Check rate limiting
+    const rateLimiter = selectedTool === 'generate' ? generateRateLimiter : editRateLimiter;
+    
+    if (!rateLimiter.canProceed()) {
+      const remainingTime = rateLimiter.getRemainingTime();
+      addToast({
+        type: 'warning',
+        message: `Please wait ${remainingTime} second${remainingTime > 1 ? 's' : ''} before trying again to avoid rate limits.`
+      });
+      return;
+    }
     
     if (selectedTool === 'generate') {
       const referenceImages = uploadedImages
@@ -381,20 +395,20 @@ export const PromptComposer: React.FC = () => {
             <span>⌘ + Enter</span>
           </div>
           <div className="flex justify-between">
-            <span>Re-roll</span>
-            <span>⇧ + R</span>
+            <span>Mode 1 / 2 / 3</span>
+            <span>⌘ + 1 / 2 / 3</span>
           </div>
           <div className="flex justify-between">
-            <span>Edit mode</span>
-            <span>E</span>
+            <span>Or Alt + G/E/M</span>
+            <span className="text-gray-600">Mode switch</span>
           </div>
           <div className="flex justify-between">
             <span>History</span>
-            <span>H</span>
+            <span>⌘ + H</span>
           </div>
           <div className="flex justify-between">
             <span>Toggle Panel</span>
-            <span>P</span>
+            <span>⌘ + P</span>
           </div>
         </div>
       </div>
